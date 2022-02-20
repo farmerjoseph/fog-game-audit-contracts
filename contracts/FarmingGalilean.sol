@@ -88,7 +88,8 @@ contract FarmingGalilean is
             tokenId,
             abi.encode(tokenURI(tokenId))
         );
-
+        
+        referrals.wipeReferralsFor(_msgSender());
         _burn(tokenId);
     }
 

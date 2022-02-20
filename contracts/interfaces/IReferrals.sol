@@ -14,4 +14,6 @@ interface IReferrals {
     function numReferrals(address user) external view returns (uint256);
 
     function getReferrer(address user) external view returns (address);
+
+    function wipeReferralsFor(address user) external;
 }

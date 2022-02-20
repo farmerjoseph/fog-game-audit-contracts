@@ -6,7 +6,9 @@ import "./common/SeasonalGameContract.sol";
 import "./common/GameContract.sol";
 import "./interfaces/IRUBY.sol";
 import "./interfaces/ICrop.sol";
+import "./interfaces/IReferrals.sol";
 import "./interfaces/traits/ICropTraits.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
@@ -31,7 +33,7 @@ contract ShippingBox is Initializable, SeasonalGameContract, ReentrancyGuardUpgr
     mapping(ICropTraits.Strength => uint16) strengthMultipliers;
     mapping(ICropTraits.Size => uint16) sizeMultipliers;
     mapping(ICropTraits.CropColor => uint16) colorMultipliers;
-    uint8[6] referralMultipliers;
+    uint8[11] referralMultipliers;
 
     uint256 public totalRubyEarnedForCrops;
     mapping(address => SaleStreak) public streakInfo;
@@ -39,6 +41,7 @@ contract ShippingBox is Initializable, SeasonalGameContract, ReentrancyGuardUpgr
     ICrop cropNFT;
     ICropTraits cropTraitsContract;
     IRUBY ruby;
+    IReferrals referrals;
 
 
     function initialize() public initializer {
@@ -82,16 +85,24 @@ contract ShippingBox is Initializable, SeasonalGameContract, ReentrancyGuardUpgr
       colorMultipliers[ICropTraits.CropColor.RAINBOW] = 800;
 
       referralMultipliers[0] = 100;
-      referralMultipliers[1] = 128;
-      referralMultipliers[2] = 131;
-      referralMultipliers[3] = 134;
-      referralMultipliers[4] = 137;
-      referralMultipliers[5] = 140;
+      referralMultipliers[1] = 115;
+      referralMultipliers[2] = 117;
+      referralMultipliers[3] = 119;
+      referralMultipliers[4] = 121;
+      referralMultipliers[5] = 123;
+      referralMultipliers[6] = 125;
+      referralMultipliers[7] = 127;
+      referralMultipliers[8] = 129;
+      referralMultipliers[9] = 131;
+      referralMultipliers[10] = 135;
     }
 
     modifier requireContractsSet() override {
         // TODO: more, probably
-        require(address(cropNFT) != address(0x0) && address(cropTraitsContract) != address(0x0) && address(ruby) != address(0x0));
+        require(address(cropNFT) != address(0x0) && 
+        address(cropTraitsContract) != address(0x0) &&
+        address(ruby) != address(0x0) &&
+        address(referrals) != address(0x0));
         _;
     }
 
@@ -101,7 +112,7 @@ contract ShippingBox is Initializable, SeasonalGameContract, ReentrancyGuardUpgr
       uint256 rubyEarned = 0;
       updateStreakInfo();
       for (uint i = 0; i < tokenIds.length; i++) {
-        uint256 cropPrice = getCropPrice(tokenIds[i]);
+        uint256 cropPrice = getCropPrice(tokenIds[i], _msgSender());
         // Don't go through with the sale if a crop's price wasn't uploaded correctly
         require (cropPrice > 0, "Crop has no price");
         rubyEarned += cropPrice;
@@ -146,11 +157,11 @@ contract ShippingBox is Initializable, SeasonalGameContract, ReentrancyGuardUpgr
       streak.previousSeasonSaleTime = block.timestamp;
     }
 
-    function getCropPrice(uint256 tokenId) internal view returns (uint256) {
+    function getCropPrice(uint256 tokenId, address user) internal view returns (uint256) {
       ICropTraits.CropTraits memory cropTraits = cropTraitsContract.getCropForToken(tokenId);
       return cropBasePrices[cropTraits.cropType] * winterMultiplier(cropTraits) * summerMultiplier(cropTraits) *
              strengthMultipliers[cropTraits.strength] * sizeMultipliers[cropTraits.size] * streakMultiplier() * 
-             colorMultipliers[cropTraits.color] * referralMultipliers[0] * 100 / // no referral bonuses implemented for now
+             colorMultipliers[cropTraits.color] * referralMultipliers[getReferralCount(user)] * getRefereeBonus(user) / 
              MULTIPLIER_DENOMINATOR;
     }
 
@@ -163,6 +174,14 @@ contract ShippingBox is Initializable, SeasonalGameContract, ReentrancyGuardUpgr
       return 100;
     }
 
+    function getReferralCount(address user) internal view returns (uint8) {
+      return uint8(MathUpgradeable.min(referrals.numReferrals(user), 10));
+    }
+
+    function getRefereeBonus(address user) internal view returns (uint8) {
+      return referrals.getReferrer(user) != address(0x0) ? 115 : 100;
+    }
+
     function summerMultiplier(ICropTraits.CropTraits memory cropTraits) internal view returns (uint8) {
       return isSeason(Season.SUMMER) && cropTraits.cropCategory == ICropTraits.CropCategory.FRUIT ? 150 : 100;
     }
@@ -171,9 +190,10 @@ contract ShippingBox is Initializable, SeasonalGameContract, ReentrancyGuardUpgr
       return streakInfo[_msgSender()].streakLength > 4 ? 125 : 100;
     }
 
-    function setContracts(address cropNFTAddress, address cropTraitsAddress, address rubyAddress) external onlyOwner {
+    function setContracts(address cropNFTAddress, address cropTraitsAddress, address rubyAddress, address referralsAddress) external onlyOwner {
         cropNFT = ICrop(cropNFTAddress);
         cropTraitsContract = ICropTraits(cropTraitsAddress);
         ruby = IRUBY(rubyAddress);
+        referrals = IReferrals(referralsAddress);
     }
 }

@@ -55,6 +55,18 @@ contract Referrals is Initializable, GameContract, IReferrals {
         userInitialized[user] = true;
     }
 
+    // If you bridge back to L1, all your referral data gets wiped.
+    function wipeReferralsFor(address user) external onlyGameContract {
+        // this is safe because this method is only called by the bridge withdraw,
+        // meaning they must have a gen 0
+        if (userToReferrer[user] != address(0x0)) {
+            userToReferralCount[userToReferrer[user]]--;
+        }
+        
+        delete userToReferrer[user];
+        delete userToReferralCount[user];
+    }
+
     function handleTransfer(
         address from,
         address to,
