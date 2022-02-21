@@ -77,7 +77,7 @@ contract FarmingGalilean is
      *
      * @param tokenId tokenId to withdraw
      */
-    function withdrawWithMetadata(uint256 tokenId) external whenNotPaused {
+    function withdrawWithMetadata(uint256 tokenId) external whenNotPaused onlyEOA {
         require(_msgSender() == ownerOf(tokenId), "Not token owner");
         require(tokenId < GEN_ZERO_CUTOFF_ID, "Only gen zero can bridge");
 

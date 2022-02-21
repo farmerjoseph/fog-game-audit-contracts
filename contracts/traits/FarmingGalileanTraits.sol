@@ -203,7 +203,6 @@ contract FarmingGalileanTraits is
         return tokenIdToGalileanTraits[tokenId];
     }
 
-    // TODO: test this
     function grantExpForToken(uint256 tokenId, uint256 numExp)
         external
         override
@@ -284,9 +283,7 @@ contract FarmingGalileanTraits is
                 (2 * uint8(galileanTraits.taste))
         );
 
-        if (tokenId < GEN_ZERO_CUTOFF_ID) {
-            galileanTraits.genZero = true;
-        }
+        // all Galileans minted on Polygon are gen 1
     }
 
     function pickNonUniformDistributionTrait(uint16 seed, uint8 trait)

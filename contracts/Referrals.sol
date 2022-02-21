@@ -44,11 +44,11 @@ contract Referrals is Initializable, GameContract, IReferrals {
     }
 
     function numReferrals(address user) external view returns (uint256) {
-        return userToReferralCount[user];
+        return galilean.numGenZeroGalileansOfUser(user) > 0 ? userToReferralCount[user] : 0;
     }
 
     function getReferrer(address user) external view returns (address) {
-        return userToReferrer[user];
+        return galilean.numGenZeroGalileansOfUser(user) > 0 ? userToReferrer[user] : address(0x0);
     }
 
     function initializeUser(address user) external onlyGameContract {
